@@ -143,6 +143,17 @@ module Mastermind
       end
     end
 
+    def computer_play
+      rob = ComputerPlayer.new
+      @board = Board.new
+      loop do
+        break lose if @board.full?
+
+        computer_play_turn(rob)
+        break win if @board.win?
+      end
+    end
+
     private
 
     def print_presentation
@@ -180,6 +191,15 @@ module Mastermind
         break
       end
     end
+
+    def computer_play_turn(rob)
+      result = @board.add_guess(rob.guess)
+      puts
+      @board.display
+      puts
+      rob.analyze_results(result)
+      rob.generate_guess
+    end
   end
 
   class ComputerPlayer
@@ -193,6 +213,7 @@ module Mastermind
 
     # update @possibilities from result of the previous guess
     def analyze_results(results)
+      puts "possibilites before analyze : #{@possibilities}"
       @previous_guess = @guess.dup
       results.each_with_index do |result, index|
         if result == true
@@ -202,6 +223,30 @@ module Mastermind
         else
           misplaced_guess(index)
         end
+      end
+      puts "possibilites after analyze : #{@possibilities}"
+    end
+
+    def generate_guess
+      initialize_guess
+      possibilities = @possibilities.dup
+      while @guess.any?(&:nil?)
+        index = shortest_array_index(possibilities)
+        @guess[index] = pick_color_from_possibilities(possibilities, index)
+        possibilities[index] = nil
+        puts "generating guess : #{@guess}"
+        puts "possibilities gguess : #{possibilities}"
+      end
+      Code.new(@guess.join(' ')).colors
+    end
+
+    private
+
+    # reset @guess then set already found colors
+    def initialize_guess
+      @guess = Array.new(4)
+      @possibilities.each_with_index do |possibility, index|
+        @guess[index] = possibility if possibility.is_a?(String)
       end
     end
 
@@ -232,40 +277,23 @@ module Mastermind
       counts.min_by { |_, count| count }[0]
     end
 
+    def least_occurent_color_in_pool(possibilities, pool)
+      poss = possibilities.dup
+      color = ''
+      loop do
+        color = least_occurent_element(poss)
+        poss.each { |elem| elem.delete(color) }
+        return color if pool.include?(color)
+      end
+    end
+
     def pick_color_from_possibilities(possibilities, index)
       pool = possibilities[index]
       return pool[0] if pool.length == 1
 
-      color = least_occurent_element(possibilities)
-      return pool.delete(color) if pool.include?(color) && !@guess.include?(color)
-
-      pool.each do |elem|
-        return pool.delete(elem) unless @guess.include?(color)
-      end
+      color = least_occurent_color_in_pool(possibilities, pool)
+      pool.delete(color)
     end
-
-    def generate_guess
-      initialize_guess
-      possibilities = @possibilities.dup
-      while @guess.any?(&:nil?)
-        index = shortest_array_index(possibilities)
-        @guess[index] = pick_color_from_possibilities(possibilities, index)
-        possibilities[index] = nil
-      end
-      Code.new(@guess.join(' ')).colors
-    end
-
-    private
-
-    # reset @guess then set already found colors
-    def initialize_guess
-      @guess = Array.new(4)
-      @possibilities.each_with_index do |possibility, index|
-        @guess[index] = possibility if possibility.is_a?(String)
-      end
-    end
-
-
 
     # remove color from each possibility and set current index possibility as known (string)
     def good_guess(index)
