@@ -181,4 +181,53 @@ module Mastermind
       end
     end
   end
+
+  class ComputerPlayer
+    attr_reader :guess
+
+    def initialize
+      @guess = Code.generate_random_with_uniq_colors
+      @previous_guess = nil
+      @possibilities = Array.new(4) { COLORS.keys.map(&:to_s) }
+    end
+
+    def analyze_results(results)
+      @previous_guess = @guess.dup
+      results.each_with_index do |result, index|
+        if result == true
+          good_guess(index)
+        elsif result == false
+          bad_guess(index)
+        else
+          misplaced_guess(index)
+        end
+      end
+    end
+
+    private
+
+    def good_guess(index)
+      color = @previous_guess[index]
+      @possibilities[index] = color
+      @possibilities.each do |possibility|
+        next if possibility.is_a?(String)
+
+        possibility.delete(color)
+      end
+    end
+
+    def bad_guess(index)
+      color = @previous_guess[index]
+      @possibilities.each do |possibility|
+        next if possibility.is_a?(String)
+
+        possibility.delete(color)
+      end
+    end
+
+    def misplaced_guess(index)
+      color = @previous_guess[index]
+      @possibilities[index].delete(color)
+    end
+  end
 end
