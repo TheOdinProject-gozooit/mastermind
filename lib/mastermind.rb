@@ -130,4 +130,55 @@ module Mastermind
       end
     end
   end
+
+  class Game
+    def play
+      print_presentation
+      @board = Board.new
+      loop do
+        break lose if @board.full?
+
+        play_turn
+        break win if @board.win?
+      end
+    end
+
+    private
+
+    def print_presentation
+      puts 'Welcome to Mastermind!'
+      puts
+      puts 'You have to guess the secret code compose of 4 of the following colors :'
+      puts COLORS.values.join(', ')
+      puts
+      puts 'The input has to be formated such as "CCCC", "C C C C" or "C, C, C, C" where C stands for [C]OLOR'
+      puts
+    end
+
+    def win
+      puts "Congratulation you found the secret code in #{@board.turn_elapsed} turns."
+    end
+
+    def lose
+      puts "Unfortunately you didn't found the secret code at time (12 turns elapsed)."
+    end
+
+    def play_turn
+      puts 'Please enter your guess :'
+      guess = gets.chomp
+      loop do
+        code = Code.new(guess)
+      rescue StandardError => e
+        puts e.message
+        puts 'Please enter a correct guess (ex: R B Y C) :'
+        guess = gets.chomp
+      else
+        @board.add_guess(code.colors)
+        puts
+        @board.display
+        puts
+        break
+      end
+    end
+  end
 end
