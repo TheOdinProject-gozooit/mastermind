@@ -183,7 +183,7 @@ module Mastermind
   end
 
   class ComputerPlayer
-    attr_reader :guess
+    attr_reader :guess, :possibilities
 
     def initialize
       @guess = Code.generate_random_with_uniq_colors
@@ -191,6 +191,7 @@ module Mastermind
       @possibilities = Array.new(4) { COLORS.keys.map(&:to_s) }
     end
 
+    # update @possibilities from result of the previous guess
     def analyze_results(results)
       @previous_guess = @guess.dup
       results.each_with_index do |result, index|
@@ -204,8 +205,69 @@ module Mastermind
       end
     end
 
+    # return index of the shortest array in a given array
+    def shortest_array_index(arr)
+      shortest_array_index = nil
+      shortest_array_length = Float::INFINITY
+
+      arr.each_with_index do |elem, index|
+        if elem.is_a?(Array) && elem.length < shortest_array_length
+          shortest_array_index = index
+          shortest_array_length = elem.length
+        end
+      end
+      shortest_array_index
+    end
+
+    # find most occurent element in array of arrays
+    def most_occurent_element(arr)
+      arr = arr.select { |elem| elem.is_a?(Array) && !elem.empty? }
+      counts = arr.flatten.group_by(&:itself).transform_values(&:count)
+      counts.max_by { |_, count| count }[0]
+    end
+
+    def least_occurent_element(arr)
+      arr = arr.select { |elem| elem.is_a?(Array) && !elem.empty? }
+      counts = arr.flatten.group_by(&:itself).transform_values(&:count)
+      counts.min_by { |_, count| count }[0]
+    end
+
+    def pick_color_from_possibilities(possibilities, index)
+      pool = possibilities[index]
+      return pool[0] if pool.length == 1
+
+      color = least_occurent_element(possibilities)
+      return pool.delete(color) if pool.include?(color) && !@guess.include?(color)
+
+      pool.each do |elem|
+        return pool.delete(elem) unless @guess.include?(color)
+      end
+    end
+
+    def generate_guess
+      initialize_guess
+      possibilities = @possibilities.dup
+      while @guess.any?(&:nil?)
+        index = shortest_array_index(possibilities)
+        @guess[index] = pick_color_from_possibilities(possibilities, index)
+        possibilities[index] = nil
+      end
+      Code.new(@guess.join(' ')).colors
+    end
+
     private
 
+    # reset @guess then set already found colors
+    def initialize_guess
+      @guess = Array.new(4)
+      @possibilities.each_with_index do |possibility, index|
+        @guess[index] = possibility if possibility.is_a?(String)
+      end
+    end
+
+
+
+    # remove color from each possibility and set current index possibility as known (string)
     def good_guess(index)
       color = @previous_guess[index]
       @possibilities[index] = color
@@ -216,6 +278,7 @@ module Mastermind
       end
     end
 
+    # remove color from each possibility
     def bad_guess(index)
       color = @previous_guess[index]
       @possibilities.each do |possibility|
@@ -225,6 +288,7 @@ module Mastermind
       end
     end
 
+    # remove color from current index possibility
     def misplaced_guess(index)
       color = @previous_guess[index]
       @possibilities[index].delete(color)
