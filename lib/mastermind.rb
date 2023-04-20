@@ -146,8 +146,9 @@ module Mastermind
   end
 
   class Game
-    def initialize(guesser)
-      @guesser = guesser
+    def initialize
+      print_presentation
+      chose_game_mode
     end
 
     def play
@@ -160,14 +161,36 @@ module Mastermind
 
     private
 
+    def input_game_mode
+      loop do
+        selection = gets.chomp
+        break selection if %w[1 2].include?(selection)
+
+        puts "Your choice (#{selection}) is not valid, you have to chose between 1 and 2."
+      end
+    end
+
+    def chose_game_mode
+      puts 'Please chose your game mode :'
+      puts '1. A secret code is generated, you have to guess it.'
+      puts '2. You give a secret code, and the computer has to guess it.'
+
+      game_mode = input_game_mode
+
+      if game_mode == '1'
+        @guesser = 'human'
+      elsif game_mode == '2'
+        @guesser = 'computer'
+      end
+    end
+
     def human_play
-      print_presentation
       @board = Board.new
       loop do
         break lose if @board.full?
 
         human_play_turn
-        break win if @board.win?
+        break human_win if @board.win?
       end
     end
 
@@ -199,7 +222,7 @@ module Mastermind
         break lose if @board.full?
 
         computer_play_turn(rob)
-        break win if @board.win?
+        break computer_win if @board.win?
       end
     end
 
@@ -215,19 +238,24 @@ module Mastermind
     def print_presentation
       puts 'Welcome to Mastermind!'
       puts
-      puts 'You have to guess the secret code compose of 4 of the following colors :'
+      puts 'The goal of the game is to find a secret code composed of 4 of the following colors in less than 12 turns :'
       puts COLORS.values.join(', ')
       puts
-      puts 'The input has to be formated such as "CCCC", "C C C C" or "C, C, C, C" where C stands for [C]OLOR'
+      puts 'Each color has to be unique in the code.'
+      puts 'The input has to be formated such as "CCCC", "C C C C" or "C, C, C, C" where C stands for [C]OLOR.'
       puts
     end
 
-    def win
+    def human_win
       puts "Congratulation you found the secret code in #{@board.turn_elapsed} turns."
     end
 
+    def computer_win
+      puts "The computer found the secret code in #{@board.turn_elapsed} turns."
+    end
+
     def lose
-      puts "Unfortunately you didn't found the secret code at time (12 turns elapsed)."
+      puts "The secret code wasn't found at time (12 turns elapsed)."
     end
   end
 
