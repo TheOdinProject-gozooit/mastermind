@@ -87,7 +87,7 @@ module Mastermind
     end
 
     def full?
-      @grid.length == 10
+      @grid.length == 12
     end
 
     def win?
@@ -238,7 +238,7 @@ module Mastermind
     def print_presentation
       puts 'Welcome to Mastermind!'
       puts
-      puts 'The goal of the game is to find a secret code composed of 4 of the following colors in less than 10 turns :'
+      puts 'The goal of the game is to find a secret code composed of 4 of the following colors in less than 12 turns :'
       puts COLORS.values.join(', ')
       puts
       puts 'Each color has to be unique in the code.'
@@ -255,7 +255,7 @@ module Mastermind
     end
 
     def lose
-      puts "The secret code wasn't found at time (10 turns elapsed)."
+      puts "The secret code wasn't found at time (12 turns elapsed)."
     end
   end
 

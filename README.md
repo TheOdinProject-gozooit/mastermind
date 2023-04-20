@@ -18,4 +18,6 @@ Build a Mastermind game from the command line where you have 12 turns to guess t
 ## Ruleset used for this project
 
 - Code is composed of 4 unique colors (red, blue, yellow, green, cyan and purple)
-- The player has 10 turns to find the secret code
+- The player has 12 turns to find the secret code
+
+![mastermind](https://upload.wikimedia.org/wikipedia/commons/2/2d/Mastermind.jpg)
