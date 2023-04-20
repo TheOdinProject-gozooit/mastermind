@@ -55,7 +55,6 @@ module Mastermind
       @secret_code = secret_code || Code.new.colors
       @grid = []
       @res = []
-      puts "secret code is #{@secret_code}"
     end
 
     def display
@@ -84,12 +83,12 @@ module Mastermind
       @grid.length
     end
 
+    private
+
     def analyse_guessed_code(guessed_code)
       guessed_code, secret_code = remove_matches_from_codes(guessed_code.dup, @secret_code.dup)
       find_misplaced_colors(guessed_code, secret_code)
     end
-
-    private
 
     def print_result_to_symbols(result)
       result.each_with_index do |r, index|
@@ -203,7 +202,7 @@ module Mastermind
   end
 
   class ComputerPlayer
-    attr_reader :guess, :possibilities
+    attr_reader :guess
 
     def initialize
       @guess = Code.generate_random_with_uniq_colors
@@ -213,7 +212,6 @@ module Mastermind
 
     # update @possibilities from result of the previous guess
     def analyze_results(results)
-      puts "possibilites before analyze : #{@possibilities}"
       @previous_guess = @guess.dup
       results.each_with_index do |result, index|
         if result == true
@@ -224,18 +222,15 @@ module Mastermind
           misplaced_guess(index)
         end
       end
-      puts "possibilites after analyze : #{@possibilities}"
     end
 
     def generate_guess
       initialize_guess
-      possibilities = @possibilities.dup
+      # the following create a deep copy (.dup creates a shallow copy)
+      possibilities = Marshal.load(Marshal.dump(@possibilities))
       while @guess.any?(&:nil?)
         index = shortest_array_index(possibilities)
         @guess[index] = pick_color_from_possibilities(possibilities, index)
-        possibilities[index] = nil
-        puts "generating guess : #{@guess}"
-        puts "possibilities gguess : #{possibilities}"
       end
       Code.new(@guess.join(' ')).colors
     end
@@ -264,35 +259,24 @@ module Mastermind
       shortest_array_index
     end
 
-    # find most occurent element in array of arrays
-    def most_occurent_element(arr)
+    # count the element occurence in an array of arrays
+    def count_element_occurence(arr)
       arr = arr.select { |elem| elem.is_a?(Array) && !elem.empty? }
-      counts = arr.flatten.group_by(&:itself).transform_values(&:count)
-      counts.max_by { |_, count| count }[0]
-    end
-
-    def least_occurent_element(arr)
-      arr = arr.select { |elem| elem.is_a?(Array) && !elem.empty? }
-      counts = arr.flatten.group_by(&:itself).transform_values(&:count)
-      counts.min_by { |_, count| count }[0]
+      arr.flatten.group_by(&:itself).transform_values(&:count)
     end
 
     def least_occurent_color_in_pool(possibilities, pool)
-      poss = possibilities.dup
-      color = ''
-      loop do
-        color = least_occurent_element(poss)
-        poss.each { |elem| elem.delete(color) }
-        return color if pool.include?(color)
-      end
+      counts = count_element_occurence(possibilities)
+      counts.select! { |i| pool.include?(i) }
+      counts.min_by { |_, count| count }[0]
     end
 
     def pick_color_from_possibilities(possibilities, index)
       pool = possibilities[index]
-      return pool[0] if pool.length == 1
-
       color = least_occurent_color_in_pool(possibilities, pool)
-      pool.delete(color)
+      possibilities.each { |possibility| possibility&.delete(color) }
+      possibilities[index] = nil
+      color
     end
 
     # remove color from each possibility and set current index possibility as known (string)
