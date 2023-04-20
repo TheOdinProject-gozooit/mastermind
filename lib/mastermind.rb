@@ -32,21 +32,36 @@ module Mastermind
       str.gsub(/\s+/, '').gsub(/,/, '').upcase
     end
 
-    def create_code_from_string(str)
-      return nil if str.nil?
+    def create_code_from_string(input)
+      return nil if input.nil?
+
+      str = format_input_string(input)
 
       unless input_string_valid?(str)
-        raise StandardError, "'#{str}' is not valid, you have to chose from (#{COLORS.keys.map(&:to_s).join(', ')})"
+        raise StandardError, "'#{input}' is not valid, you have to chose from (#{COLORS.keys.map(&:to_s).join(', ')})"
       end
 
-      format_input_string(str).split('')
+      raise StandardError, "'#{input}' is not valid, each color has to be unique." unless uniq_colors?(str)
+
+      str.split('')
     end
 
     def input_string_valid?(str)
-      str = format_input_string(str)
       return false unless str.length == 4
 
       str.each_char.all? { |char| COLORS.keys.map(&:to_s).include?(char) }
+    end
+
+    def uniq_colors?(str)
+      seen_characters = {}
+
+      str.each_char do |char|
+        return false if seen_characters[char]
+
+        seen_characters[char] = true
+      end
+
+      true
     end
   end
 
@@ -131,20 +146,55 @@ module Mastermind
   end
 
   class Game
+    def initialize(guesser)
+      @guesser = guesser
+    end
+
     def play
+      if @guesser == 'human'
+        human_play
+      elsif @guesser == 'computer'
+        computer_play(input_user_code.colors)
+      end
+    end
+
+    private
+
+    def human_play
       print_presentation
       @board = Board.new
       loop do
         break lose if @board.full?
 
-        play_turn
+        human_play_turn
         break win if @board.win?
       end
     end
 
-    def computer_play
+    def human_play_turn
+      code = input_user_code
+      @board.add_guess(code.colors)
+      puts
+      @board.display
+      puts
+    end
+
+    def input_user_code
+      puts 'Please enter your code :'
+      guess = gets.chomp
+      loop do
+        code = Code.new(guess)
+      rescue StandardError => e
+        puts "#{e.message}\nPlease enter a valid code (ex: R B Y C) :"
+        guess = gets.chomp
+      else
+        break code
+      end
+    end
+
+    def computer_play(secret_code)
       rob = ComputerPlayer.new
-      @board = Board.new
+      @board = Board.new(secret_code)
       loop do
         break lose if @board.full?
 
@@ -153,7 +203,14 @@ module Mastermind
       end
     end
 
-    private
+    def computer_play_turn(rob)
+      result = @board.add_guess(rob.guess)
+      puts
+      @board.display
+      puts
+      rob.analyze_results(result)
+      rob.generate_guess
+    end
 
     def print_presentation
       puts 'Welcome to Mastermind!'
@@ -171,33 +228,6 @@ module Mastermind
 
     def lose
       puts "Unfortunately you didn't found the secret code at time (12 turns elapsed)."
-    end
-
-    def play_turn
-      puts 'Please enter your guess :'
-      guess = gets.chomp
-      loop do
-        code = Code.new(guess)
-      rescue StandardError => e
-        puts e.message
-        puts 'Please enter a correct guess (ex: R B Y C) :'
-        guess = gets.chomp
-      else
-        @board.add_guess(code.colors)
-        puts
-        @board.display
-        puts
-        break
-      end
-    end
-
-    def computer_play_turn(rob)
-      result = @board.add_guess(rob.guess)
-      puts
-      @board.display
-      puts
-      rob.analyze_results(result)
-      rob.generate_guess
     end
   end
 
